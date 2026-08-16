@@ -1,7 +1,8 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-import google.generativeai as genai
+import requests
+import json
 
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
 st.title("🏠 Acceptatiebeleid Assistent")
@@ -30,8 +31,6 @@ api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
-
-genai.configure(api_key=api_key)
 
 @st.cache_data
 def get_pdf_texts():
@@ -63,11 +62,26 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             try:
-                # We dwingen nu het stabiele 'gemini-pro' model af
-                model = genai.GenerativeModel('gemini-pro')
+                # Directe REST-aanroep via de stabiele v1 endpoint met de API-key als url-parameter
+                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+                
                 full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
-                response = model.generate_content(full_prompt)
-                answer = response.text
+                
+                payload = {
+                    "contents": [{
+                        "parts": [{"text": full_prompt}]
+                    }]
+                }
+                
+                headers = {'Content-Type': 'application/json'}
+                
+                response = requests.post(url, headers=headers, data=json.dumps(payload))
+                res_json = response.json()
+                
+                if "candidates" in res_json:
+                    answer = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                else:
+                    answer = f"Google API melding: {res_json}"
             except Exception as e:
                 answer = f"Er is een fout opgetreden: {e}"
                 
