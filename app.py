@@ -31,13 +31,17 @@ def check_password():
 if not check_password():
     st.stop()
 
-# API-key ophalen
-api_key = st.secrets.get("OPENAI_API_KEY")
+# API-key ophalen (Gemini via OpenAI-compatibiliteit of rechtstreeks)
+api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
 
-client = OpenAI(api_key=api_key)
+# We gebruiken Google's OpenAI-compatibel eindpunt zodat je je Gemini sleutel kunt gebruiken!
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 
 # PDF's automatisch uitlezen uit de map
 @st.cache_data
@@ -55,9 +59,6 @@ def get_pdf_texts():
 with st.spinner("Acceptatiegidsen worden ingelezen..."):
     pdf_context = get_pdf_texts()
 
-if not pdf_context:
-    st.warning("Geen PDF-bestanden gevonden in de repository. Upload je acceptatiegidsen naar GitHub!")
-
 # Chatgeschiedenis
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -74,7 +75,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gemini-2.5-flash",
                 messages=[
                     {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende documentatie:\n\n{pdf_context[:100000]}"},
                     {"role": "user", "content": prompt}
