@@ -27,7 +27,8 @@ def check_password():
 if not check_password():
     st.stop()
 
-api_key = st.secrets.get("GEMINI_API_KEY")
+# Haal de sleutel op (ondersteunt zowel Groq als Gemini naamgeving in secrets)
+api_key = st.secrets.get("GROQ_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
@@ -62,26 +63,28 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             try:
-                # Directe REST-aanroep via de stabiele v1 endpoint met de API-key als url-parameter
-                url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
-                
-                full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
+                url = "https://api.groq.com/openai/v1/chat/completions"
                 
                 payload = {
-                    "contents": [{
-                        "parts": [{"text": full_prompt}]
-                    }]
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}"},
+                        {"role": "user", "content": prompt}
+                    ]
                 }
                 
-                headers = {'Content-Type': 'application/json'}
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
                 
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 res_json = response.json()
                 
-                if "candidates" in res_json:
-                    answer = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                if "choices" in res_json:
+                    answer = res_json["choices"][0]["message"]["content"]
                 else:
-                    answer = f"Google API melding: {res_json}"
+                    answer = f"API melding: {res_json}"
             except Exception as e:
                 answer = f"Er is een fout opgetreden: {e}"
                 
