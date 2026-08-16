@@ -75,7 +75,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             response = client.chat.completions.create(
-                model="gpt-4o-mini", # De wrapper vangt dit af en stuurt het naar Gemini
+                model="gemini-1.5-flash", # De wrapper vangt dit af en stuurt het naar Gemini
                 messages=[
                     {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende documentatie:\n\n{pdf_context[:100000]}"},
                     {"role": "user", "content": prompt}
