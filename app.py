@@ -3,21 +3,16 @@ import os
 from pypdf import PdfReader
 import google.generativeai as genai
 
-# Pagina instellingen
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
-
 st.title("🏠 Acceptatiebeleid Assistent")
 
-# Wachtwoord beveiliging
-PASSWORD = "jouw-wachtwoord-hier" # Pas aan naar wens
+PASSWORD = "jouw-wachtwoord-hier"
 
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state.password_correct = False
-    
     if st.session_state.password_correct:
         return True
-
     st.subheader("🔒 Log in om toegang te krijgen")
     pwd = st.text_input("Wachtwoord:", type="password")
     if st.button("Inloggen"):
@@ -31,7 +26,6 @@ def check_password():
 if not check_password():
     st.stop()
 
-# API-key ophalen en configureren
 api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
@@ -39,7 +33,6 @@ if not api_key:
 
 genai.configure(api_key=api_key)
 
-# PDF's automatisch uitlezen uit de map
 @st.cache_data
 def get_pdf_texts():
     all_text = ""
@@ -55,7 +48,6 @@ def get_pdf_texts():
 with st.spinner("Acceptatiegidsen worden ingelezen..."):
     pdf_context = get_pdf_texts()
 
-# Chatgeschiedenis
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -71,11 +63,9 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             try:
-                # Gebruik de -latest alias, die pakt altijd de juiste actieve versie
-                model = genai.GenerativeModel("gemini-1.5-flash-latest")
-                
+                # Geen modelnaam meegeven laat de SDK zelf de default kiezen
+                model = genai.GenerativeModel()
                 full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
-                
                 response = model.generate_content(full_prompt)
                 answer = response.text
             except Exception as e:
