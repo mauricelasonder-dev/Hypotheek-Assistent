@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-from openai import OpenAI
+import google.generativeai as genai
 
 # Pagina instellingen
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
@@ -31,17 +31,13 @@ def check_password():
 if not check_password():
     st.stop()
 
-# API-key ophalen (Gemini via OpenAI-compatibiliteit of rechtstreeks)
+# API-key ophalen
 api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
 
-# We gebruiken Google's OpenAI-compatibel eindpunt zodat je je Gemini sleutel kunt gebruiken!
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-)
+genai.configure(api_key=api_key)
 
 # PDF's automatisch uitlezen uit de map
 @st.cache_data
@@ -59,9 +55,21 @@ def get_pdf_texts():
 with st.spinner("Acceptatiegidsen worden ingelezen..."):
     pdf_context = get_pdf_texts()
 
+# Model initialiseren (gebruikt de slimme Flash 2.0 / 1.5 variant)
+model = genai.GenerativeModel(
+    model_name="gemini-1.5-flash",
+    system_instruction=f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}"
+)
+
 # Chatgeschiedenis
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+# Start een chat sessie
+chat = model.start_chat(history=[
+    {"role": m["role"] if m["role"] != "assistant" else "model", "parts": [m["content"]]} 
+    for m in st.session_state.messages
+])
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -74,13 +82,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
-            response = client.chat.completions.create(
-                model="gemini-2.5-flash",
-                messages=[
-                    {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende documentatie:\n\n{pdf_context[:100000]}"},
-                    {"role": "user", "content": prompt}
-                ]
-            )
-            answer = response.choices[0].message.content
+            response = chat.send_message(prompt)
+            answer = response.text
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
