@@ -70,7 +70,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             # Directe API-aanroep via Google's REST endpoint (werkt altijd met elk type sleutel)
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
             
             # Bouw de prompt inclusief de gidsen als context
             full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
