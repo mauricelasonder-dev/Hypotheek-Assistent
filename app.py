@@ -69,10 +69,9 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
-            # Directe API-aanroep via Google's REST endpoint (werkt altijd met elk type sleutel)
-            url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+            # Gebruik Bearer authenticatie voor AQ... tokens in plaats van ?key=
+            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
             
-            # Bouw de prompt inclusief de gidsen als context
             full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
             
             payload = {
@@ -81,7 +80,10 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 }]
             }
             
-            headers = {'Content-Type': 'application/json'}
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}'
+            }
             
             try:
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
