@@ -63,8 +63,8 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             try:
-                # Geen modelnaam meegeven laat de SDK zelf de default kiezen
-                model = genai.GenerativeModel()
+                # We dwingen nu het stabiele 'gemini-pro' model af
+                model = genai.GenerativeModel('gemini-pro')
                 full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
                 response = model.generate_content(full_prompt)
                 answer = response.text
