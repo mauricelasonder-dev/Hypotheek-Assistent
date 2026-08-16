@@ -1,7 +1,7 @@
-streamlit
-openai
-pypdf
-langchain
-langchain-community
-langchain-openai
-chromadb
+streamlit==1.32.0
+openai==1.14.1
+pypdf==4.1.0
+langchain==0.1.12
+langchain-community==0.0.28
+langchain-openai==0.0.8
+chromadb==0.4.24
