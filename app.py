@@ -1,8 +1,7 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-import requests
-import json
+import google.generativeai as genai
 
 # Pagina instellingen
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
@@ -32,11 +31,13 @@ def check_password():
 if not check_password():
     st.stop()
 
-# API-key ophalen
-api_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+# API-key ophalen en configureren
+api_key = st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
+
+genai.configure(api_key=api_key)
 
 # PDF's automatisch uitlezen uit de map
 @st.cache_data
@@ -69,30 +70,14 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
-            # Gebruik Bearer authenticatie voor AQ... tokens in plaats van ?key=
-            url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
-            
-            full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
-            
-            payload = {
-                "contents": [{
-                    "parts": [{"text": full_prompt}]
-                }]
-            }
-            
-            headers = {
-                'Content-Type': 'application/json',
-                'Authorization': f'Bearer {api_key}'
-            }
-            
             try:
-                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                res_json = response.json()
+                # Gebruik het standaard stabiele flash-model
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 
-                if "candidates" in res_json:
-                    answer = res_json["candidates"][0]["content"]["parts"][0]["text"]
-                else:
-                    answer = f"Fout van Google API: {res_json}"
+                full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
+                
+                response = model.generate_content(full_prompt)
+                answer = response.text
             except Exception as e:
                 answer = f"Er is een fout opgetreden: {e}"
                 
