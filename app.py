@@ -57,7 +57,7 @@ with st.spinner("Acceptatiegidsen worden ingelezen..."):
 
 # Model initialiseren met de meest actuele modelnaam die Google AI Studio gebruikt
 model = genai.GenerativeModel(
-    model_name="gemini-2.5-flash",
+    model_name="gemini-1.5-flash",
     system_instruction=f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}"
 )
 
