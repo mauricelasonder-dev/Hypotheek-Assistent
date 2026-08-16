@@ -27,7 +27,6 @@ def check_password():
 if not check_password():
     st.stop()
 
-# Haal de sleutel op (ondersteunt zowel Groq als Gemini naamgeving in secrets)
 api_key = st.secrets.get("GROQ_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
@@ -47,6 +46,8 @@ def get_pdf_texts():
 
 with st.spinner("Acceptatiegidsen worden ingelezen..."):
     pdf_context = get_pdf_texts()
+    # Snijd de tekst automatisch af op een veilig formaat (ca. 8000 tekens / ~2000 tokens)
+    pdf_context_safe = pdf_context[:8000]
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -68,7 +69,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}"},
+                        {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context_safe}"},
                         {"role": "user", "content": prompt}
                     ]
                 }
