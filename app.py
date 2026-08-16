@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-import google.generativeai as genai
+from openai import OpenAI
 
 # Pagina instellingen
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
@@ -37,7 +37,11 @@ if not api_key:
     st.error("Voeg je API key toe in de Streamlit Secrets instellingen!")
     st.stop()
 
-genai.configure(api_key=api_key)
+# Client instellen voor Gemini via het OpenAI-compatible endpoint
+client = OpenAI(
+    api_key=api_key,
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+)
 
 # PDF's automatisch uitlezen uit de map
 @st.cache_data
@@ -55,21 +59,9 @@ def get_pdf_texts():
 with st.spinner("Acceptatiegidsen worden ingelezen..."):
     pdf_context = get_pdf_texts()
 
-# Model initialiseren (gebruikt de slimme Flash 2.0 / 1.5 variant)
-model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
-    system_instruction=f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}"
-)
-
 # Chatgeschiedenis
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-# Start een chat sessie
-chat = model.start_chat(history=[
-    {"role": m["role"] if m["role"] != "assistant" else "model", "parts": [m["content"]]} 
-    for m in st.session_state.messages
-])
 
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -82,7 +74,13 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
-            response = chat.send_message(prompt)
-            answer = response.text
+            response = client.chat.completions.create(
+                model="gpt-4o-mini", # De wrapper vangt dit af en stuurt het naar Gemini
+                messages=[
+                    {"role": "system", "content": f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende documentatie:\n\n{pdf_context[:100000]}"},
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            answer = response.choices[0].message.content
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
