@@ -71,8 +71,8 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("assistant"):
         with st.spinner("Even zoeken in de gidsen..."):
             try:
-                # Gebruik het standaard stabiele flash-model
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                # Gebruik de -latest alias, die pakt altijd de juiste actieve versie
+                model = genai.GenerativeModel("gemini-1.5-flash-latest")
                 
                 full_prompt = f"Je bent een handige hypotheek assistent. Beantwoord de vraag uitsluitend op basis van de volgende acceptatiedocumentatie:\n\n{pdf_context[:100000]}\n\nVraag: {prompt}"
                 
