@@ -8,7 +8,7 @@ st.title("🏠 Acceptatiebeleid Assistent")
 
 PASSWORD = "jouw-wachtwoord-hier"
 
-# 1. Supersnelle PDF-inlezer die alle bestanden globaal cached in de sessie
+# 1. Supersnelle PDF-inlezer die alle bestanden globaal cached in het geheugen
 @st.cache_resource
 def load_all_pdfs():
     all_chunks = []
@@ -51,7 +51,7 @@ api_key = st.secrets.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 model = genai.GenerativeModel('gemini-3.6-flash')
 
-# Laad alle PDF's eenmalig in het geheugen (super snel!)
+# Laad alle PDF's eenmalig in het geheugen (supersnel!)
 pdf_chunks = load_all_pdfs()
 
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -63,38 +63,37 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
     with st.chat_message("user"): st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        with st.spinner("Zoeken in je 20 gidsen..."):
+        with st.spinner("Zoeken in je gidsen..."):
             prompt_lower = prompt.lower()
             
-            # Slimme optimalisatie: als een geldverstrekker in de vraag wordt genoemd,
-            # filter dan direct op bestandsnamen die daarmee matchen voor maximale snelheid!
-            matched_chunks = [
-                item for item in pdf_chunks 
-                if any(word in item['source'].lower() for word in prompt_lower.split())
-            ]
+            # Slimme trefwoorden-zoektocht over ALLE geladen PDF's heen
+            search_words = prompt_lower.split()
+            scored = []
+            for item in pdf_chunks:
+                # Geef extra gewicht als de geldverstrekker of zoekterm direct in de tekst of bron staat
+                score = sum(2 if w in item["text"].lower() or w in item["source"].lower() else 0 for w in search_words)
+                # Tel ook gewone overeenlagen mee
+                score += sum(1 for w in search_words if w in item["text"].lower())
+                if score > 0:
+                    scored.append((score, item))
             
-            # Zo niet, val dan terug op de algemene trefwoorden-zoektocht over alle chunks
-            if not matched_chunks:
-                search_words = prompt_lower.split()
-                scored = []
-                for item in pdf_chunks:
-                    score = sum(1 for w in search_words if w in item["text"].lower())
-                    if score > 0: scored.append((score, item))
-                scored.sort(key=lambda x: x[0], reverse=True)
-                matched_chunks = [item[1] for item in scored[:6]] if scored else pdf_chunks[:6]
-            else:
-                matched_chunks = matched_chunks[:6] # Beperk tot top 6 relevante stukken van die geldverstrekker
+            scored.sort(key=lambda x: x[0], reverse=True)
+            
+            # Neem de top relevante stukken mee als context
+            matched_chunks = [item[1] for item in scored[:6]] if scored else pdf_chunks[:6]
 
             context = "\n\n---\n\n".join([f"Bron: {item['source']}\nInhoud: {item['text']}" for item in matched_chunks])
             
             system_instruction = (
                 "Jij bent een specialistische Hypotheek Acceptatie Assistent. "
                 "Geef antwoord met een korte inleiding, gevolgd door een tabel met: "
-                "| Geldverstrekker | Beleid (Kort & Bondig) | Letterlijke omschrijving | Bron |"
+                "| Geldverstrekker | Beleid (Kort & Bondig) | Letterlijke omschrijving | Bron |\n"
+                "Zoek goed in de aangeleverde context naar de gevraagde geldverstrekker (bijv. NIBC). "
+                "Als de informatie in de context staat, neem deze dan direct op in de tabel. Verzin nooit gegevens."
             )
             
             try:
-                response = model.generate_content(f"{system_instructions if 'system_instructions' in locals() else system_instruction}\n\nContext:\n{context}\n\nVraag: {prompt}")
+                response = model.generate_content(f"{system_instruction}\n\nContext:\n{context}\n\nVraag: {prompt}")
                 answer = response.text
             except Exception as e:
                 answer = f"Er ging iets mis met de verbinding naar Gemini: {e}"
