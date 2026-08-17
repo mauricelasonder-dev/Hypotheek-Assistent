@@ -1,58 +1,31 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-import requests
-import json
+import google.generativeai as genai
 
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
 st.title("🏠 Acceptatiebeleid Assistent")
 
 PASSWORD = "jouw-wachtwoord-hier"
 
-# Functie om PDF te lezen en op te knippen (gecached voor snelheid)
+# Functie voor PDF verwerking
 @st.cache_data
 def get_pdf_chunks_cached(file_path, chunk_size=2000, chunk_overlap=400):
     reader = PdfReader(file_path)
-    full_text = ""
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            full_text += text + "\n"
-            
-    chunks = []
-    start = 0
-    while start < len(full_text):
-        end = start + chunk_size
-        chunk = full_text[start:end]
-        chunks.append(chunk)
-        start += chunk_size - chunk_overlap
-        
-    return chunks
+    full_text = "\n".join([page.extract_text() for page in reader.pages if page.extract_text()])
+    return [full_text[i:i+chunk_size] for i in range(0, len(full_text), chunk_size - chunk_overlap)]
 
-# Supersnelle trefwoorden-zoekfunctie met synoniemen
+# Zoekfunctie
 def find_relevant_chunks(prompt, chunks, top_n=6):
-    prompt_lower = prompt.lower()
-    
-    # Breid de zoektermen automatisch uit bij specifieke begrippen
-    search_words = prompt_lower.split()
-    if "consumptief" in prompt_lower or "lening" in prompt_lower:
-        search_words.extend(["niet", "fiscaal", "aftrekbaar", "rente", "financieringslastpercentages"])
-    
+    search_words = prompt.lower().split()
     scored_chunks = []
     for item in chunks:
-        chunk_text = item["text"].lower()
-        score = sum(1 for word in search_words if word in chunk_text)
-        if score > 0:
-            scored_chunks.append((score, item))
-    
+        score = sum(1 for word in search_words if word in item["text"].lower())
+        if score > 0: scored_chunks.append((score, item))
     scored_chunks.sort(key=lambda x: x[0], reverse=True)
-    
-    if not scored_chunks:
-        return chunks[:top_n]
-        
-    return [item[1] for item in scored_chunks[:top_n]]
+    return [item[1] for item in scored_chunks[:top_n]] if scored_chunks else chunks[:top_n]
 
-# Wachtwoord logic...
+# Auth logic
 if "password_correct" not in st.session_state: st.session_state.password_correct = False
 if not st.session_state.password_correct:
     pwd = st.text_input("Wachtwoord:", type="password")
@@ -61,14 +34,16 @@ if not st.session_state.password_correct:
         st.rerun()
     st.stop()
 
-api_key = st.secrets.get("GROQ_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+# Gemini configuratie
+api_key = st.secrets.get("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
+model = genai.GenerativeModel('gemini-1.5-flash')
 
-# Laad alle PDF's bliksemsnel in via de cache
+# PDF loading
 pdf_chunks = []
 for file in os.listdir("."):
     if file.endswith(".pdf"):
-        chunks = get_pdf_chunks_cached(file)
-        for chunk in chunks:
+        for chunk in get_pdf_chunks_cached(file):
             pdf_chunks.append({"text": chunk, "source": file})
 
 if "messages" not in st.session_state: st.session_state.messages = []
@@ -81,45 +56,20 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Zoeken in je documentatie..."):
-            relevant_items = find_relevant_chunks(prompt, pdf_chunks, top_n=6)
+            relevant_items = find_relevant_chunks(prompt, pdf_chunks)
+            context = "\n\n---\n\n".join([f"Bron: {item['source']}\nInhoud: {item['text']}" for item in relevant_items])
             
-            context_texts = []
-            for item in relevant_items:
-                context_texts.append(f"Bron: {item['source']}\nInhoud: {item['text']}")
-            
-            relevant_context = "\n\n---\n\n".join(context_texts)
+            system_instruction = (
+                "Jij bent een specialistische Hypotheek Acceptatie Assistent. "
+                "Geef antwoord met een korte inleiding, gevolgd door een tabel met: "
+                "| Geldverstrekker | Beleid (Kort & Bondig) | Letterlijke omschrijving | Bron |"
+            )
             
             try:
-                url = "https://api.groq.com/openai/v1/chat/completions"
-                payload = {
-                 "model": "gemma2-9b-it",
-                    "messages": [
-                        {
-                            "role": "system", 
-                            "content": (
-                                "Jij bent een specialistische Hypotheek Acceptatie Assistent. "
-                                "Geef antwoord met een korte inleiding van max 2 zinnen, gevolgd door exact één tabel met deze kolommen:\n"
-                                "| Geldverstrekker | Beleid (Kort & Bondig) | Letterlijke omschrijving uit gids | Bronvermelding |\n"
-                                "Speculeer nooit, verwerk synoniemen (zoals consumptief lenen = niet-aftrekbare rente) en vermeld altijd de bron."
-                            )
-                        },
-                        {
-                            "role": "user", 
-                            "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
-                        }
-                    ]
-                }
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                
-                res_json = response.json()
-                if "choices" in res_json:
-                    answer = res_json["choices"][0]["message"]["content"]
-                else:
-                    answer = f"Groq API melding: {res_json}"
-                    
+                response = model.generate_content(f"{system_instruction}\n\nContext:\n{context}\n\nVraag: {prompt}")
+                answer = response.text
             except Exception as e:
-                answer = f"Fout bij verwerken: {e}"
+                answer = f"Er ging iets mis met de verbinding naar Gemini: {e}"
                 
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
