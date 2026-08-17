@@ -3,6 +3,15 @@ import os
 from pypdf import PdfReader
 import requests
 import json
+from sentence_transformers import SentenceTransformer
+import numpy as np
+
+# Laad een snel en slim lokaal embedding model (gebeurt eenmalig bij opstarten)
+@st.cache_resource
+def load_model():
+    return SentenceTransformer('all-MiniLM-L6-v2')
+
+embed_model = load_model()
 
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
 st.title("🏠 Acceptatiebeleid Assistent")
