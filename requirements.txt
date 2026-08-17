@@ -1,3 +1,5 @@
 streamlit
-google-generativeai
 pypdf
+requests
+sentence-transformers
+numpy
