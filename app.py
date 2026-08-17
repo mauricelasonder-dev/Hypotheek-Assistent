@@ -91,7 +91,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
-               payload = {
+                payload = {
                     "model": "llama3-8b-8192",
                     "messages": [
                         {
@@ -112,7 +112,6 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 
-                # Check of de API een geldige respons geeft
                 res_json = response.json()
                 if "choices" in res_json:
                     answer = res_json["choices"][0]["message"]["content"]
