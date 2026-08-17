@@ -85,7 +85,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": "Jij bent een zeer nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context, zoek niet alleen naar exacte woorden. Als het antwoord niet in de context staat, zeg dan eerlijk dat je het niet weet en ga niet gokken. Wees zakelijk en verwijs indien nodig naar de juiste sectie."},
+                        {"role": "system", "content": Jij bent een zeer nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: 'consumptief lenen' of 'niet-aftrekbare rente' / 'fiscaal niet aftrekbaar' zijn in deze gidsen vaak aan elkaar gekoppeld. Als de tekst spreekt over financieringslastpercentages bij een lening waarvan de rente niet fiscaal aftrekbaar is, betekent dit dat consumptief/niet-aftrekbaar lenen wel degelijk mogelijk is. Vermeld onder je antwoord altijd de bron (bestandsnaam). Verzin nooit dingen die er niet staan en ga niet speculeren over de focus van een geldverstrekker."},
                         {"role": "user", "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"}
                     ]
                 }
