@@ -91,8 +91,8 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
-                payload = {
-                    "model": "llama-3.1-8b-instant",
+               payload = {
+                    "model": "llama3-8b-8192",
                     "messages": [
                         {
                             "role": "system", 
