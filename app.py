@@ -83,17 +83,18 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
                 payload = {
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [
-                        {
-                            "role": "system", 
-                            "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
-                        },
-                        {
-                            "role": "user", 
-                            "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
-                        }
-                    ]
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "system", 
+                    "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
+                },
+                {
+                    "role": "user", 
+                    "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
+                }
+            ]
+        }
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 answer = response.json()["choices"][0]["message"]["content"]
