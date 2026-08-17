@@ -3,27 +3,17 @@ import os
 from pypdf import PdfReader
 import requests
 import json
-from sentence_transformers import SentenceTransformer
-import numpy as np
-
-# Laad een snel en slim lokaal embedding model (gebeurt eenmalig bij opstarten)
-@st.cache_resource
-def load_model():
-    return SentenceTransformer('all-MiniLM-L6-v2')
-
-embed_model = load_model()
 
 st.set_page_config(page_title="Hypotheek Acceptatie Assistent", page_icon="🏠")
 st.title("🏠 Acceptatiebeleid Assistent")
 
 PASSWORD = "jouw-wachtwoord-hier"
 
-# Functie om PDF te lezen en slim op te knippen met overlap
-# Verhoog de chunk_size voor meer context en de overlap voor betere aansluiting
-def get_pdf_chunks(pdf_file, chunk_size=2000, chunk_overlap=400):
-    reader = PdfReader(pdf_file)
+# Functie om PDF te lezen en op te knippen (gecached voor snelheid)
+@st.cache_data
+def get_pdf_chunks_cached(file_path, chunk_size=2000, chunk_overlap=400):
+    reader = PdfReader(file_path)
     full_text = ""
-    
     for page in reader.pages:
         text = page.extract_text()
         if text:
@@ -39,12 +29,11 @@ def get_pdf_chunks(pdf_file, chunk_size=2000, chunk_overlap=400):
         
     return chunks
 
-# Zoek alleen de meest relevante stukjes voor de vraag
-# 1. Supersnelle en slimme trefwoorden-zoekfunctie met synoniemen
+# Supersnelle trefwoorden-zoekfunctie met synoniemen
 def find_relevant_chunks(prompt, chunks, top_n=6):
     prompt_lower = prompt.lower()
     
-    # Breid de zoektermen automatisch uit als het om consumptief lenen gaat
+    # Breid de zoektermen automatisch uit bij specifieke begrippen
     search_words = prompt_lower.split()
     if "consumptief" in prompt_lower or "lening" in prompt_lower:
         search_words.extend(["niet", "fiscaal", "aftrekbaar", "rente", "financieringslastpercentages"])
@@ -52,20 +41,17 @@ def find_relevant_chunks(prompt, chunks, top_n=6):
     scored_chunks = []
     for item in chunks:
         chunk_text = item["text"].lower()
-        # Tel hoeveel zoekwoorden er in dit stuk tekst voorkomen
         score = sum(1 for word in search_words if word in chunk_text)
         if score > 0:
             scored_chunks.append((score, item))
     
-    # Sorteer op de meeste treffers
     scored_chunks.sort(key=lambda x: x[0], reverse=True)
     
-    # Als de trefwoorden niets opleveren, pak dan voor de zekerheid de eerste chunks
     if not scored_chunks:
         return chunks[:top_n]
         
     return [item[1] for item in scored_chunks[:top_n]]
-    
+
 # Wachtwoord logic...
 if "password_correct" not in st.session_state: st.session_state.password_correct = False
 if not st.session_state.password_correct:
@@ -76,16 +62,14 @@ if not st.session_state.password_correct:
     st.stop()
 
 api_key = st.secrets.get("GROQ_API_KEY") or st.secrets.get("GEMINI_API_KEY")
-# Haal alle PDF's op, inclusief de bestandsnaam voor de bronvermelding
+
+# Laad alle PDF's bliksemsnel in via de cache
 pdf_chunks = []
 for file in os.listdir("."):
     if file.endswith(".pdf"):
-        with open(file, "rb") as f:
-            chunks = get_pdf_chunks(f)
-            # Sla per chunk de tekst, bron én direct de vector-embedding op
-            for chunk in chunks:
-                vector = embed_model.encode(chunk)
-                pdf_chunks.append({"text": chunk, "source": file, "embedding": vector})
+        chunks = get_pdf_chunks_cached(file)
+        for chunk in chunks:
+            pdf_chunks.append({"text": chunk, "source": file})
 
 if "messages" not in st.session_state: st.session_state.messages = []
 for message in st.session_state.messages:
@@ -108,18 +92,18 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
                 payload = {
-            "model": "llama-3.3-70b-versatile",
-            "messages": [
-                {
-                    "role": "system", 
-                    "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
-                },
-                {
-                    "role": "user", 
-                    "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": [
+                        {
+                            "role": "system", 
+                            "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
+                        }
+                    ]
                 }
-            ]
-        }
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 answer = response.json()["choices"][0]["message"]["content"]
