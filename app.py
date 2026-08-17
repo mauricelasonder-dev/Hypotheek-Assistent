@@ -10,24 +10,22 @@ st.title("🏠 Acceptatiebeleid Assistent")
 PASSWORD = "jouw-wachtwoord-hier"
 
 # Functie om PDF te lezen en slim op te knippen met overlap
-def get_pdf_chunks(pdf_file, chunk_size=1000, chunk_overlap=200):
+d# Verhoog de chunk_size voor meer context en de overlap voor betere aansluiting
+def get_pdf_chunks(pdf_file, chunk_size=2000, chunk_overlap=400):
     reader = PdfReader(pdf_file)
     full_text = ""
     
-    # Haal alle tekst uit de PDF pagina voor pagina
     for page in reader.pages:
         text = page.extract_text()
         if text:
             full_text += text + "\n"
             
-    # De tekst opdelen in 'chunks' met overlap zodat context behouden blijft
     chunks = []
     start = 0
     while start < len(full_text):
         end = start + chunk_size
         chunk = full_text[start:end]
         chunks.append(chunk)
-        # Zet de startpositie iets terug voor de overlap
         start += chunk_size - chunk_overlap
         
     return chunks
