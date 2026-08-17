@@ -91,12 +91,25 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
-                payload = {
+               payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
                         {
                             "role": "system", 
-                            "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
+                            "content": (
+                                "Jij bent een specialistische Hypotheek Acceptatie Assistent voor een onafhankelijk advieskantoor. "
+                                "Jouw taak is om de meegeleverde acceptatieregels te doorzoeken en te vergelijken op basis van de vraag van de adviseur.\n\n"
+                                "REGELS VOOR JE ANTWOORD:\n"
+                                "1. Geef een korte inleiding van maximaal 2 zinnen.\n"
+                                "2. Geef daarna exact één overzichtelijke tabel met deze kolommen:\n"
+                                "| Geldverstrekker | Beleid (Kort & Bondig) | Letterlijke omschrijving uit gids | Bronvermelding (Pagina/Paragraaf/Document) |\n\n"
+                                "GEDRAGSREGELS:\n"
+                                "- Speculeer nooit. Als iets niet in de tekst staat, meld dat eerlijk.\n"
+                                "- Let op synoniemen en alternatieve formuleringen (bijv. 'consumptief lenen' kan omschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'). Als dat zo is, is het wel mogelijk!\n"
+                                "- Houd de tekst in de kolom 'Beleid' extreem kort en to-the-point.\n"
+                                "- Gebruik in de kolom 'Letterlijke omschrijving' een exact citaat uit de context.\n"
+                                "- Vermeld altijd de juiste bron (bestandsnaam)."
+                            )
                         },
                         {
                             "role": "user", 
@@ -104,10 +117,3 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                         }
                     ]
                 }
-                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-                response = requests.post(url, headers=headers, data=json.dumps(payload))
-                answer = response.json()["choices"][0]["message"]["content"]
-            except Exception as e:
-                answer = f"Fout: {e}"
-            st.markdown(answer)
-            st.session_state.messages.append({"role": "assistant", "content": answer})
