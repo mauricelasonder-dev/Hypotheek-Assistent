@@ -111,8 +111,16 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 }
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
-                answer = response.json()["choices"][0]["message"]["content"]
-           except Exception as e:
-    answer = f"API Fout: {response.text if 'response' in locals() else e}"
+                
+                # Check of de API een geldige respons geeft
+                res_json = response.json()
+                if "choices" in res_json:
+                    answer = res_json["choices"][0]["message"]["content"]
+                else:
+                    answer = f"Groq API melding: {res_json}"
+                    
+            except Exception as e:
+                answer = f"Fout bij verwerken: {e}"
+                
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
