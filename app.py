@@ -85,10 +85,15 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": Jij bent een zeer nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: 'consumptief lenen' of 'niet-aftrekbare rente' / 'fiscaal niet aftrekbaar' zijn in deze gidsen vaak aan elkaar gekoppeld. Als de tekst spreekt over financieringslastpercentages bij een lening waarvan de rente niet fiscaal aftrekbaar is, betekent dit dat consumptief/niet-aftrekbaar lenen wel degelijk mogelijk is. Vermeld onder je antwoord altijd de bron (bestandsnaam). Verzin nooit dingen die er niet staan en ga niet speculeren over de focus van een geldverstrekker."},
-                        {"role": "user", "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"}
+                        {
+                            "role": "system", 
+                            "content": "Jij bent een nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context. Let op: begrippen als 'consumptief lenen' kunnen in de tekst beschreven zijn als 'lening waarvan de rente niet fiscaal aftrekbaar is'. Als dit zo is, is het dus wel mogelijk. Vermeld altijd de bron. Ga niet speculeren."
+                        },
+                        {
+                            "role": "user", 
+                            "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
+                        }
                     ]
-                }
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
                 response = requests.post(url, headers=headers, data=json.dumps(payload))
                 answer = response.json()["choices"][0]["message"]["content"]
