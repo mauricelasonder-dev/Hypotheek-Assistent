@@ -37,7 +37,7 @@ if not st.session_state.password_correct:
 # Gemini configuratie
 api_key = st.secrets.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # PDF loading
 pdf_chunks = []
