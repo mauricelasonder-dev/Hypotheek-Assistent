@@ -74,7 +74,13 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Zoeken in je documentatie..."):
-            relevant_context = "\n\n".join(find_relevant_chunks(prompt, pdf_chunks))
+            relevant_items = find_relevant_chunks(prompt, pdf_chunks, top_n=6)
+            
+            context_texts = []
+            for item in relevant_items:
+                context_texts.append(f"Bron: {item['source']}\nInhoud: {item['text']}")
+            
+            relevant_context = "\n\n---\n\n".join(context_texts)
             
             try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
