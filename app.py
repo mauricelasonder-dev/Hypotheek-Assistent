@@ -89,9 +89,9 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             
             relevant_context = "\n\n---\n\n".join(context_texts)
             
-            try:
+          try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
-               payload = {
+                payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
                         {
@@ -116,4 +116,12 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                             "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"
                         }
                     ]
+                }
+                headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+                response = requests.post(url, headers=headers, data=json.dumps(payload))
+                answer = response.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                answer = f"Fout: {e}"
+            st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
                 }
