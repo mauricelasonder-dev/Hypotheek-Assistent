@@ -89,7 +89,7 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
             
             relevant_context = "\n\n---\n\n".join(context_texts)
             
-          try:
+            try:
                 url = "https://api.groq.com/openai/v1/chat/completions"
                 payload = {
                     "model": "llama-3.3-70b-versatile",
@@ -124,4 +124,3 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 answer = f"Fout: {e}"
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
-                }
