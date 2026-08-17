@@ -40,17 +40,19 @@ def get_pdf_chunks(pdf_file, chunk_size=2000, chunk_overlap=400):
     return chunks
 
 # Zoek alleen de meest relevante stukjes voor de vraag
-def find_relevant_chunks(prompt, chunks, top_n=6):
-    prompt_words = prompt.lower().split()
+def find_relevant_chunks(prompt, chunks, top_n=4):
+    prompt_vector = embed_model.encode(prompt)
+    
     scored_chunks = []
     for item in chunks:
-        chunk_text = item["text"]
-        score = sum(1 for word in prompt_words if word in chunk_text.lower())
-        scored_chunks.append((score, item))
+        # Bereken de overeenkomst op basis van de vectoren
+        similarity = np.dot(prompt_vector, item["embedding"]) / (
+            np.linalg.norm(prompt_vector) * np.linalg.norm(item["embedding"])
+        )
+        scored_chunks.append((similarity, item))
     
     scored_chunks.sort(key=lambda x: x[0], reverse=True)
     return [item[1] for item in scored_chunks[:top_n]]
-
 # Wachtwoord logic...
 if "password_correct" not in st.session_state: st.session_state.password_correct = False
 if not st.session_state.password_correct:
