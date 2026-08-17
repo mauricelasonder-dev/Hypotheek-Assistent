@@ -54,13 +54,15 @@ if not st.session_state.password_correct:
     st.stop()
 
 api_key = st.secrets.get("GROQ_API_KEY") or st.secrets.get("GEMINI_API_KEY")
-# Haal alle PDF's op en pas de overlap toe
+# Haal alle PDF's op, inclusief de bestandsnaam voor de bronvermelding
 pdf_chunks = []
 for file in os.listdir("."):
     if file.endswith(".pdf"):
         with open(file, "rb") as f:
             chunks = get_pdf_chunks(f)
-            pdf_chunks.extend(chunks)
+            # Sla per chunk ook de bestandsnaam op als bron
+            for chunk in chunks:
+                pdf_chunks.append({"text": chunk, "source": file})
 
 if "messages" not in st.session_state: st.session_state.messages = []
 for message in st.session_state.messages:
