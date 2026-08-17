@@ -67,9 +67,10 @@ for file in os.listdir("."):
     if file.endswith(".pdf"):
         with open(file, "rb") as f:
             chunks = get_pdf_chunks(f)
-            # Sla per chunk ook de bestandsnaam op als bron
+            # Sla per chunk de tekst, bron én direct de vector-embedding op
             for chunk in chunks:
-                pdf_chunks.append({"text": chunk, "source": file})
+                vector = embed_model.encode(chunk)
+                pdf_chunks.append({"text": chunk, "source": file, "embedding": vector})
 
 if "messages" not in st.session_state: st.session_state.messages = []
 for message in st.session_state.messages:
