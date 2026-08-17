@@ -33,7 +33,7 @@ def get_pdf_chunks(pdf_file, chunk_size=1000, chunk_overlap=200):
     return chunks
 
 # Zoek alleen de meest relevante stukjes voor de vraag
-def find_relevant_chunks(prompt, chunks, top_n=3):
+def find_relevant_chunks(prompt, chunks, top_n=6):
     # Simpele zoekopdracht: kijkt welk stukje de meeste trefwoorden bevat
     prompt_words = prompt.lower().split()
     scored_chunks = []
