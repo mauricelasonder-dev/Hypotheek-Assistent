@@ -79,8 +79,8 @@ if prompt := st.chat_input("Stel je vraag over het acceptatiebeleid..."):
                 payload = {
                     "model": "llama-3.3-70b-versatile",
                     "messages": [
-                        {"role": "system", "content": f"Je bent een assistent. Beantwoord de vraag op basis van deze fragmenten:\n\n{relevant_context}"},
-                        {"role": "user", "content": prompt}
+                        {"role": "system", "content": "Jij bent een zeer nauwkeurige hypotheekadviseur. Analyseer de betekenis van de vraag en de context, zoek niet alleen naar exacte woorden. Als het antwoord niet in de context staat, zeg dan eerlijk dat je het niet weet en ga niet gokken. Wees zakelijk en verwijs indien nodig naar de juiste sectie."},
+                        {"role": "user", "content": f"Context:\n{relevant_context}\n\nVraag: {prompt}"}
                     ]
                 }
                 headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
