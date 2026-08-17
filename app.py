@@ -34,15 +34,15 @@ def get_pdf_chunks(pdf_file, chunk_size=1000, chunk_overlap=200):
 
 # Zoek alleen de meest relevante stukjes voor de vraag
 def find_relevant_chunks(prompt, chunks, top_n=6):
-    # Simpele zoekopdracht: kijkt welk stukje de meeste trefwoorden bevat
     prompt_words = prompt.lower().split()
     scored_chunks = []
-    for chunk in chunks:
-        score = sum(1 for word in prompt_words if word in chunk.lower())
-        scored_chunks.append((score, chunk))
-    # Sorteer op relevantie
+    for item in chunks:
+        chunk_text = item["text"]
+        score = sum(1 for word in prompt_words if word in chunk_text.lower())
+        scored_chunks.append((score, item))
+    
     scored_chunks.sort(key=lambda x: x[0], reverse=True)
-    return [chunk for score, chunk in scored_chunks[:top_n]]
+    return [item[1] for item in scored_chunks[:top_n]]
 
 # Wachtwoord logic...
 if "password_correct" not in st.session_state: st.session_state.password_correct = False
