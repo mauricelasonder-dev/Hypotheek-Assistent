@@ -9,21 +9,27 @@ st.title("🏠 Acceptatiebeleid Assistent")
 
 PASSWORD = "jouw-wachtwoord-hier"
 
-# Sla alle tekst op in kleine, behapbare stukjes (chunks)
-@st.cache_data
-def get_pdf_chunks():
+# Functie om PDF te lezen en slim op te knippen met overlap
+def get_pdf_chunks(pdf_file, chunk_size=1000, chunk_overlap=200):
+    reader = PdfReader(pdf_file)
+    full_text = ""
+    
+    # Haal alle tekst uit de PDF pagina voor pagina
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            full_text += text + "\n"
+            
+    # De tekst opdelen in 'chunks' met overlap zodat context behouden blijft
     chunks = []
-    chunk_size = 1500 # Tekens per stukje
-    for file in os.listdir("."):
-        if file.endswith(".pdf"):
-            reader = PdfReader(file)
-            full_text = ""
-            for page in reader.pages:
-                text = page.extract_text()
-                if text: full_text += text
-            # Knip in stukjes
-            for i in range(0, len(full_text), chunk_size):
-                chunks.append(full_text[i:i+chunk_size])
+    start = 0
+    while start < len(full_text):
+        end = start + chunk_size
+        chunk = full_text[start:end]
+        chunks.append(chunk)
+        # Zet de startpositie iets terug voor de overlap
+        start += chunk_size - chunk_overlap
+        
     return chunks
 
 # Zoek alleen de meest relevante stukjes voor de vraag
